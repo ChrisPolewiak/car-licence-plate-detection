@@ -7,7 +7,7 @@ set +a
 
 # Container name to monitor
 CONTAINER_NAME="car-license-plate-detection"
-IMAGE_NAME="chrispolewiak/plate-detector:latest"
+IMAGE_NAME="chrispolewiak/car-license-plate-detection:latest"
 
 # Pull the latest image from DockerHub
 echo "[INFO] Pulling latest image from DockerHub: $IMAGE_NAME"

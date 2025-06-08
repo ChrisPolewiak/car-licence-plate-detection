@@ -6,6 +6,9 @@ services:
     build: .
     restart: unless-stopped
 
+    image: plate-detector
+    user: "${LINUX_UID}:${LINUX_GID}"
+
     environment:
       - HOME=/app
 

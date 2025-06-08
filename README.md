@@ -1,4 +1,4 @@
-# Car Licence Plate Detection (CPU-only, Synology-ready)
+# Car License Plate Detection (CPU-only, Synology-ready)
 
 YOLOv8 + EasyOCR based license plate detection app, designed for use on CPU-only environments such as Synology NAS.  
 Detects license plates from an RTSP stream, matches against a watchlist, saves logs and image snapshots, and sends webhook notifications (e.g. to Home Assistant).

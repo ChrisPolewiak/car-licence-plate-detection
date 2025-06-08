@@ -12,6 +12,11 @@ cd "$PROJECT_DIR" || {
   exit 1
 }
 
+# Ensure required folders exist
+mkdir -p "$PROJECT_DIR/detected"
+mkdir -p "$PROJECT_DIR/logs"
+touch "$PROJECT_DIR/plates_watchlist.json"
+
 # Check if container exists (running or not)
 if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
   echo "[INFO] Stopping and removing existing container: ${CONTAINER_NAME}"

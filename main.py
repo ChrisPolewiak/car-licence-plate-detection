@@ -118,11 +118,8 @@ def main():
             continue
 
         process_frame(frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
 
     cap.release()
-    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     print("Starting plate detector (CPU-only)...")

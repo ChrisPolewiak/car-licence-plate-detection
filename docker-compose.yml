@@ -20,9 +20,6 @@ services:
       - ${LOGS_PATH}:/app/logs
       - ${WATCHLIST_PATH}:/app/plates_watchlist.json:ro
 
-    ports:
-      - "5000:5000"
-
     command: >
       python main.py
 

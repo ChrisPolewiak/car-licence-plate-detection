@@ -6,3 +6,6 @@ matplotlib==3.8.4
 easyocr==1.7.1
 requests==2.32.2
 python-dotenv==1.0.1
+torch==2.5.1
+torchvision==0.20.1
+omegaconf==2.3.0

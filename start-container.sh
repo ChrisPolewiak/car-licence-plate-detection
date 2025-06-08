@@ -7,27 +7,28 @@ set +a
 
 # Container name to monitor
 CONTAINER_NAME="car-license-plate-detection"
+IMAGE_NAME="chrispolewiak/plate-detector:latest"
 
-# Check if the container is already running
-if docker ps --filter "name=$CONTAINER_NAME" --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
-    echo "[INFO] Container already running. Skipping launch."
-    exit 0
+# Pull the latest image from DockerHub
+echo "[INFO] Pulling latest image from DockerHub: $IMAGE_NAME"
+docker pull $IMAGE_NAME
+
+# Stop and remove old container if it exists
+if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+  echo "[INFO] Removing existing container: ${CONTAINER_NAME}"
+  docker stop "$CONTAINER_NAME" >/dev/null 2>&1
+  docker rm "$CONTAINER_NAME" >/dev/null 2>&1
 fi
 
-# If stopped container exists, remove it
-if docker ps -a --filter "name=$CONTAINER_NAME" --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
-    echo "[INFO] Removing old stopped container..."
-    docker rm $CONTAINER_NAME
-fi
+# Ensure necessary directories exist
+mkdir -p "$DETECTED_PATH" "$LOGS_PATH"
 
-
-# Start the container (auto-remove after exit)
+# Run the container using pulled image
+echo "[INFO] Starting container: ${CONTAINER_NAME}"
 docker run -d \
-  --name $CONTAINER_NAME \
-  -e TZ=$TZ \
+  --name "$CONTAINER_NAME" \
+  -e TZ="$TZ" \
   -v "$DETECTED_PATH":/app/detected \
   -v "$LOGS_PATH":/app/logs \
   -v "$WATCHLIST_PATH":/app/plates_watchlist.json:ro \
-  -u ${LINUX_UID}:${LINUX_GID} \
-  car-license-plate-detection
-
+  "$IMAGE_NAME"

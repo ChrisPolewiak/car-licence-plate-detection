@@ -1,10 +1,12 @@
 import os
+import contextlib
 import cv2
 import json
 import time
 import logging
 import requests
 import numpy as np
+import sys
 from PIL import Image
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
@@ -53,8 +55,14 @@ def send_webhook(plate, label, confidence, image_path):
     except Exception as e:
         logging.error(f"Failed to send webhook for {plate}: {e}")
 
+@contextlib.contextmanager
+def suppress_stdout():
+    with contextlib.redirect_stdout(open(os.devnull, 'w')):
+        yield
+
 model = YOLO("best.pt").to("cpu")
-reader = easyocr.Reader(['en'], gpu=False)
+with suppress_stdout():
+    reader = easyocr.Reader(['en'], gpu=False)
 
 def process_frame(frame):
 

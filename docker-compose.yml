@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  plate-detector:
+    container_name: plate-detector
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ${DETECTED_PATH:-./detected}:/app/detected
+      - ${LOGS_PATH:-./logs}:/app/logs
+      - ${WATCHLIST_PATH:-./plates_watchlist.json}:/app/plates_watchlist.json:ro
+    ports:
+      - "5000:5000"  # jeśli potrzebujesz wystawić dostęp do /detected

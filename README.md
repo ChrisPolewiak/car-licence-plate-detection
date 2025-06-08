@@ -26,7 +26,7 @@ cp .env.template .env
 # Edit .env to configure RTSP stream, webhook and paths
 docker compose build
 docker compose up -d
-
+```
 
 ## 📦 Model Source
 

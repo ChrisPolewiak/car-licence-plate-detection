@@ -71,11 +71,11 @@ def process_frame(frame):
         for box in result.boxes.xyxy:
             x1, y1, x2, y2 = map(int, box.tolist())
             img_crop = frame[y1:y2, x1:x2]
-            result = reader.readtext(img_crop)
+            ocr_results = reader.readtext(img_crop)
 
             result_text = ""
             max_conf = 0.0
-            for detection in result:
+            for detection in ocr_results:
                 text = detection[1].replace(" ", "").upper()
                 conf = detection[2]
                 result_text += text

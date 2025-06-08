@@ -17,4 +17,4 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Default command
-CMD ["python", "plate_detection.py"]
+CMD ["python", "main.py"]

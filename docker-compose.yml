@@ -5,11 +5,26 @@ services:
     container_name: plate-detector
     build: .
     restart: unless-stopped
+
+    environment:
+      - HOME=/app
+
     env_file:
       - .env
+
     volumes:
       - ${DETECTED_PATH}:/app/detected
       - ${LOGS_PATH}:/app/logs
       - ${WATCHLIST_PATH}:/app/plates_watchlist.json:ro
+
     ports:
       - "5000:5000"
+
+    command: >
+      python main.py
+
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "udp://${SYSLOG_IP}:514"
+        tag: "plate-detector"

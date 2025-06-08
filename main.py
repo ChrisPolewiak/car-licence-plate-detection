@@ -3,7 +3,6 @@ import contextlib
 import cv2
 import json
 import time
-import logging
 import requests
 import numpy as np
 import sys
@@ -12,6 +11,8 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from ultralytics import YOLO
 import easyocr
+from torch.serialization import add_safe_classes
+from ultralytics.nn.tasks import DetectionModel
 
 # Load environment variables
 load_dotenv()
@@ -22,6 +23,8 @@ IMAGE_BASE_URL = os.getenv("IMAGE_BASE_URL")
 # Create necessary directories
 os.makedirs("logs", exist_ok=True)
 os.makedirs("detected", exist_ok=True)
+
+import logging
 
 # Configure logging
 logging.basicConfig(
@@ -60,6 +63,9 @@ def suppress_stdout():
     with contextlib.redirect_stdout(open(os.devnull, 'w')):
         yield
 
+
+
+add_safe_classes([DetectionModel])
 model = YOLO("best.pt").to("cpu")
 with suppress_stdout():
     reader = easyocr.Reader(['en'], gpu=False)

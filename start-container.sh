@@ -24,15 +24,10 @@ fi
 # Start the container (auto-remove after exit)
 docker run -d \
   --name $CONTAINER_NAME \
-  -e SOURCE_DIR=$SOURCE_DIR \
-  -e TARGET_DIR=$TARGET_DIR \
-  -e TARGET_TEST_DIR=$TARGET_TEST_DIR \
-  -e LOGS_DIR=$LOGS_DIR \
   -e TZ=$TZ \
-  -v $IMPORT_PATH:$SOURCE_DIR \
-  -v $LIBRARY_PATH:$TARGET_DIR \
-  -v $LIBRARYTEST_PATH:$TARGET_TEST_DIR \
-  -v $LOGS_PATH:$LOGS_DIR \
+  -v "$DETECTED_PATH":/app/detected \
+  -v "$LOGS_PATH":/app/logs \
+  -v "$WATCHLIST_PATH":/app/plates_watchlist.json:ro \
   -u ${LINUX_UID}:${LINUX_GID} \
   car-license-plate-detection
 

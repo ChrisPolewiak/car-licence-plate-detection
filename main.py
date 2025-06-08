@@ -11,8 +11,6 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from ultralytics import YOLO
 import easyocr
-from torch.serialization import add_safe_classes
-from ultralytics.nn.tasks import DetectionModel
 
 # Load environment variables
 load_dotenv()
@@ -64,8 +62,12 @@ def suppress_stdout():
         yield
 
 
+from torch.serialization import add_safe_globals
+import ultralytics.nn.tasks
 
-add_safe_classes([DetectionModel])
+add_safe_globals([ultralytics.nn.tasks.DetectionModel])
+
+
 model = YOLO("best.pt").to("cpu")
 with suppress_stdout():
     reader = easyocr.Reader(['en'], gpu=False)

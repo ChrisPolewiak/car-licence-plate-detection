@@ -11,6 +11,7 @@ services:
 
     environment:
       - HOME=/app
+      - YOLO_CONFIG_DIR=/tmp/ultralytics
 
     env_file:
       - .env

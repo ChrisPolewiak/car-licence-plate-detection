@@ -161,3 +161,4 @@ cython_debug/
 
 
 plates_watchlist.json
+docker-build.sh

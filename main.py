@@ -44,6 +44,10 @@ load_dotenv()
 RTSP_URL = os.getenv("RTSP_URL")
 HASSIO_WEBHOOK = os.getenv("HASSIO_WEBHOOK")
 IMAGE_BASE_URL = os.getenv("IMAGE_BASE_URL")
+ROI_X1 = int(os.getenv("ROI_X1", "0"))
+ROI_Y1 = int(os.getenv("ROI_Y1", "0"))
+ROI_X2 = int(os.getenv("ROI_X2", "100"))
+ROI_Y2 = int(os.getenv("ROI_Y2", "100"))
 
 # Create necessary directories
 os.makedirs("logs", exist_ok=True)
@@ -94,8 +98,16 @@ except Exception as e:
     sys.exit(1)
 
 def process_frame(frame):
+    global ROI_X1, ROI_Y1, ROI_X2, ROI_Y2
 
-    frame_resized = cv2.resize(frame, (640, 640))
+    h, w = frame.shape[:2]
+    x1 = int(w * ROI_X1 / 100)
+    y1 = int(h * ROI_Y1 / 100)
+    x2 = int(w * ROI_X2 / 100)
+    y2 = int(h * ROI_Y2 / 100)
+    roi = frame[y1:y2, x1:x2]        
+
+    frame_resized = cv2.resize(roi, (640, 640))
     img_tensor = torch.from_numpy(frame_resized).permute(2, 0, 1).float().div(255.0).unsqueeze(0)
 
     with torch.no_grad():
@@ -130,10 +142,14 @@ def process_frame(frame):
 
         label = WATCHLIST.get(plate)
 
+        # Draw ROI rectangle on full frame
+        annotated = frame.copy()
+        cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
         # Save cropped image
         timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
         image_filename = f"{plate}_{timestamp_str}.jpg"
-        cv2.imwrite(os.path.join("detected", image_filename), img_crop)
+        cv2.imwrite(os.path.join("detected", image_filename), annotated)
 
         log_msg = f"Detected plate: {plate}, confidence: {int(max_conf * 100)}%"
         if label:

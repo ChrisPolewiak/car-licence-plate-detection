@@ -6,6 +6,7 @@ import cv2
 import json
 import time
 import requests
+import subprocess
 import numpy as np
 from PIL import Image
 from datetime import datetime, timedelta

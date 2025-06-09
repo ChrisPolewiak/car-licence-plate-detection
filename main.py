@@ -12,8 +12,11 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from ultralytics import YOLO
 import easyocr
-
 import logging
+
+os.environ["KMP_WARNINGS"] = "0"  # jeśli używasz torch
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["TORCH_CPP_LOG_LEVEL"] = "ERROR"
 
 # Configure logging
 logging.basicConfig(
@@ -24,9 +27,15 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     ]
 )
+logging.getLogger("easyocr").setLevel(logging.WARNING)
+logging.getLogger("ultralytics").setLevel(logging.WARNING)
 
-print(f"Looking for .env at: {env_path}")
-print(f"RTSP_URL: {os.getenv('RTSP_URL')}")
+
+try:
+    import tqdm
+    tqdm.tqdm.__init__ = lambda *a, **k: None  # hard kill if needed
+except:
+    pass
 
 # Load environment variables
 env_path = os.path.join(os.path.dirname(__file__), ".env")
@@ -118,6 +127,9 @@ def process_frame(frame):
             continue
 
         plate = result_text.replace("-", "")
+
+        timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
         label = WATCHLIST.get(plate)
 
         # Save cropped image
@@ -146,6 +158,9 @@ def main():
         logging.error("Failed to open RTSP stream")
         return
 
+    frame_counter = 0
+    last_report_time = time.time()
+
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -153,7 +168,12 @@ def main():
             time.sleep(1)
             continue
 
+        frame_counter += 1
         process_frame(frame)
+
+        if time.time() - last_report_time > 300:  # 5 minut
+            logging.info(f"Processed frames so far: {frame_counter}")
+            last_report_time = time.time()
 
     cap.release()
 

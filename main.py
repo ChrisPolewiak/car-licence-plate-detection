@@ -1,35 +1,46 @@
 import os
+import sys
+import ctypes
 import contextlib
 import cv2
 import json
 import time
 import requests
 import numpy as np
-import sys
 from PIL import Image
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from ultralytics import YOLO
 import easyocr
 
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("logs/detection.log"),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+print(f"Looking for .env at: {env_path}")
+print(f"RTSP_URL: {os.getenv('RTSP_URL')}")
+
 # Load environment variables
+env_path = os.path.join(os.path.dirname(__file__), ".env")
 load_dotenv()
 RTSP_URL = os.getenv("RTSP_URL")
 HASSIO_WEBHOOK = os.getenv("HASSIO_WEBHOOK")
 IMAGE_BASE_URL = os.getenv("IMAGE_BASE_URL")
 
+logging.info("RTSP_URL after load: %s", os.getenv("RTSP_URL"))
+
 # Create necessary directories
 os.makedirs("logs", exist_ok=True)
 os.makedirs("detected", exist_ok=True)
 
-import logging
-
-# Configure logging
-logging.basicConfig(
-    filename="logs/detection.log",
-    level=logging.INFO,
-    format='%(asctime)s - %(message)s'
-)
 
 # Load watchlist
 with open("plates_watchlist.json", "r") as f:
@@ -56,64 +67,81 @@ def send_webhook(plate, label, confidence, image_path):
     except Exception as e:
         logging.error(f"Failed to send webhook for {plate}: {e}")
 
-@contextlib.contextmanager
-def suppress_stdout():
-    with contextlib.redirect_stdout(open(os.devnull, 'w')):
-        yield
+import torch
+from ultralytics.nn.tasks import DetectionModel
+from torch.serialization import safe_globals
 
 
-from torch.serialization import add_safe_globals
-import ultralytics.nn.tasks
+from ultralytics import YOLO
 
-add_safe_globals([ultralytics.nn.tasks.DetectionModel])
+try:
+    model = torch.jit.load("best.torchscript.pt", map_location="cpu").eval()
+except Exception as e:
+    logging.exception("Failed to load YOLO TorchScript model")
+    sys.exit(1)
 
-
-model = YOLO("best.pt").to("cpu")
-with suppress_stdout():
+try:
     reader = easyocr.Reader(['en'], gpu=False)
+except Exception as e:
+    logging.exception("Failed to initialize EasyOCR reader")
+    sys.exit(1)
 
 def process_frame(frame):
 
-    results = model(frame)
-    for result in results:
-        for box in result.boxes.xyxy:
-            x1, y1, x2, y2 = map(int, box.tolist())
-            img_crop = frame[y1:y2, x1:x2]
-            ocr_results = reader.readtext(img_crop)
+    frame_resized = cv2.resize(frame, (640, 640))
+    img_tensor = torch.from_numpy(frame_resized).permute(2, 0, 1).float().div(255.0).unsqueeze(0)
 
-            result_text = ""
-            max_conf = 0.0
-            for detection in ocr_results:
-                text = detection[1].replace(" ", "").upper()
-                conf = detection[2]
-                result_text += text
-                max_conf = max(max_conf, conf)
+    with torch.no_grad():
+        output = model(img_tensor)[0].cpu().numpy()
 
-            if max_conf < CONFIDENCE_THRESHOLD:
-                continue
+    for det in output:
+        x1, y1, x2, y2, conf, cls = det[:6]
+        if conf < CONFIDENCE_THRESHOLD:
+            continue
 
-            plate = result_text.replace("-", "")
-            label = WATCHLIST.get(plate)
+        x1, y1, x2, y2 = map(int, [x1, y1, x2, y2])
+        img_crop = frame[y1:y2, x1:x2]
+        if img_crop is None or img_crop.shape[0] == 0 or img_crop.shape[1] == 0:
+            continue
 
-            # Save cropped image
-            timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-            image_filename = f"{plate}_{timestamp_str}.jpg"
-            cv2.imwrite(os.path.join("detected", image_filename), img_crop)
+        ocr_results = reader.readtext(img_crop)
 
-            log_msg = f"Detected plate: {plate}, confidence: {int(max_conf * 100)}%"
-            if label:
-                log_msg += f", label: {label}"
-            logging.info(log_msg)
+        result_text = ""
+        max_conf = 0.0
+        for detection in ocr_results:
+            text = detection[1].replace(" ", "").upper()
+            conf = detection[2]
+            result_text += text
+            max_conf = max(max_conf, conf)
 
-            if label:
-                last_time = last_sent.get(plate)
-                now = datetime.now()
-                if not last_time or (now - last_time) > timedelta(seconds=THROTTLE_SECONDS):
-                    send_webhook(plate, label, int(max_conf * 100), image_filename)
-                    last_sent[plate] = now
+        if max_conf < CONFIDENCE_THRESHOLD:
+            continue
+
+        plate = result_text.replace("-", "")
+        label = WATCHLIST.get(plate)
+
+        # Save cropped image
+        timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        image_filename = f"{plate}_{timestamp_str}.jpg"
+        cv2.imwrite(os.path.join("detected", image_filename), img_crop)
+
+        log_msg = f"Detected plate: {plate}, confidence: {int(max_conf * 100)}%"
+        if label:
+            log_msg += f", label: {label}"
+        logging.info(log_msg)
+
+        if label:
+            last_time = last_sent.get(plate)
+            now = datetime.now()
+            if not last_time or (now - last_time) > timedelta(seconds=THROTTLE_SECONDS):
+                send_webhook(plate, label, int(max_conf * 100), image_filename)
+                last_sent[plate] = now
 
 def main():
-    cap = cv2.VideoCapture(RTSP_URL)
+
+    logging.info("Starting plate detection from RTSP stream: %s", RTSP_URL)
+    
+    cap = cv2.VideoCapture(RTSP_URL, cv2.CAP_FFMPEG)
     if not cap.isOpened():
         logging.error("Failed to open RTSP stream")
         return
@@ -130,5 +158,5 @@ def main():
     cap.release()
 
 if __name__ == "__main__":
-    print("Starting plate detector (CPU-only)...")
+    logging.info("Starting plate detector (CPU-only)...")
     main()

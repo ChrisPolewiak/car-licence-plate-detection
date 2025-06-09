@@ -18,3 +18,5 @@ logs/
 detected/
 plates_watchlist.json
 docker-build.sh
+.venv
+.venv*

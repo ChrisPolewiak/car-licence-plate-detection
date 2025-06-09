@@ -31,4 +31,7 @@ docker run -d \
   -v "$DETECTED_PATH":/app/detected \
   -v "$LOGS_PATH":/app/logs \
   -v "$WATCHLIST_PATH":/app/plates_watchlist.json:ro \
+  -v "$(pwd)/.env":/app/.env:ro \
   "$IMAGE_NAME"
+
+docker images "$IMAGE_NAME" --format "{{.ID}}" | tail -n +2 | xargs -r docker rmi

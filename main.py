@@ -16,7 +16,6 @@ import logging
 
 os.environ["KMP_WARNINGS"] = "0"  # jeśli używasz torch
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-os.environ["TORCH_CPP_LOG_LEVEL"] = "ERROR"
 
 # Configure logging
 logging.basicConfig(
@@ -44,12 +43,9 @@ RTSP_URL = os.getenv("RTSP_URL")
 HASSIO_WEBHOOK = os.getenv("HASSIO_WEBHOOK")
 IMAGE_BASE_URL = os.getenv("IMAGE_BASE_URL")
 
-logging.info("RTSP_URL after load: %s", os.getenv("RTSP_URL"))
-
 # Create necessary directories
 os.makedirs("logs", exist_ok=True)
 os.makedirs("detected", exist_ok=True)
-
 
 # Load watchlist
 with open("plates_watchlist.json", "r") as f:

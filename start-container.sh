@@ -28,6 +28,7 @@ echo "[INFO] Starting container: ${CONTAINER_NAME}"
 docker run -d \
   --name "$CONTAINER_NAME" \
   -e TZ="$TZ" \
+  -e TORCH_CPP_LOG_LEVEL=ERROR \
   -v "$DETECTED_PATH":/app/detected \
   -v "$LOGS_PATH":/app/logs \
   -v "$WATCHLIST_PATH":/app/plates_watchlist.json:ro \

@@ -16,6 +16,7 @@ import logging
 
 os.environ["KMP_WARNINGS"] = "0"  # jeśli używasz torch
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+sys.stderr = open(os.devnull, 'w')
 
 # Configure logging
 logging.basicConfig(
